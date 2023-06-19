@@ -11,6 +11,9 @@ Install the required dependencies with the following command:
 pip install -r requirements.txt
 ```
 
+The original datasets can downloaded from here:
+https://drive.google.com/drive/folders/1Zz2HJkz8wBqUGrNilRvCzVCW0hoVfN8K?usp=sharing
+
 ## Part 1: Weakly-labeled flood map
 Code for this process can be found in `generate_weaklabels.ipynb`.
 
