@@ -12,9 +12,13 @@ pip install -r requirements.txt
 ```
 
 ## Part 1: Weakly-labeled flood map
+Code for this process can be found in `generate_weaklabels.ipynb`.
+
+This process can be broken down into 4 steps:
 1. Get NDWI difference image from pre- and post-flood images
-2. Binary classification of the NDWI difference image using either histogram thresholding or k-means clustering (`thresholding_types_florence.ipynb`)
-3. Remove noise through edge detection (edge_detection_harvey.ipynb)
+2. Binary classification of the NDWI difference image through k-means clustering
+3. Remove noise through edge detection
+4. Gaussian smoothing
 
 ## Part 2: Bitemporal UNet
 
@@ -40,5 +44,4 @@ Change the parameters specified in `train.py` using argument parser:
 * `--data_root_dir_gt`: directory of weakly-labeled flood map
 
 ### Testing the Model
-To test the model and get the predictions, run `test.py` with your defined parameters.
-Model predictions are binarized with either histogram thresholding or k-means clustering (`thresholding_types_florence.ipynb`) for evaluation
+To test the model, run `test.py`. Make sure to change the parameters to the correct corresponding directories.

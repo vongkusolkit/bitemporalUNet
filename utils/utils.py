@@ -68,10 +68,11 @@ def metric_pytorch(y_pred, y_true):
     n_sample = y_true.numel()
     acc = (y_pred == y_true).sum().float() / n_sample
 
-    TP = np.logical_and(y_pred, y_true).sum()
-    FP = y_pred.sum() - TP
-    FN = y_true.sum() - TP
-    TN = (y_pred == y_true).sum() - TP
+    # TP = np.logical_and(y_pred, y_true).sum()
+    TP = np.logical_and(y_pred.cpu(), y_true.cpu()).sum()
+    FP = y_pred.cpu().sum() - TP
+    FN = y_true.cpu().sum() - TP
+    TN = (y_pred.cpu() == y_true.cpu()).sum() - TP
 
     precision = (TP + SMOOTH) / (TP + FP + SMOOTH)
     recall = (TP + SMOOTH) / (TP + FN + SMOOTH)
@@ -162,8 +163,8 @@ def iou_pytorch(y_pred, y_true):
     # union = (y_pred | y_true).sum((1, 2)).float()   # Will be zero if both are 0
     # iou = (intersection + eps) / (union + eps)  # We smooth our devision to avoid 0/0
 
-    intersection = np.logical_and(y_pred, y_true)
-    union = np.logical_or(y_pred, y_true)
+    intersection = np.logical_and(y_pred.cpu(), y_true.cpu())
+    union = np.logical_or(y_pred.cpu(), y_true.cpu())
     iou_score = torch.sum(intersection + SMOOTH) / torch.sum(union + SMOOTH)
     # thresholded = torch.clamp(20 * (iou_score - 0.5), 0, 10).ceil() / 10  # This is equal to comparing with thresolds
     print('iou_score: ', iou_score)

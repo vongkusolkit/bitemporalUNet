@@ -17,22 +17,21 @@ from utils.dicebceloss import DiceBCELoss
 from utils.utils import AverageMeter, set_logger, iou_pytorch, metric_pytorch, weight_tensor
 
 parser = argparse.ArgumentParser()
-# parser.add_argument('--version', type=str, default='train_harvey_framework')
-parser.add_argument('--version', type=str, default='train_florence')
-parser.add_argument('-t', '--test_batch_size', type=int, default=4)
-parser.add_argument('--csv_test', type=str, default='data/florence/florence_test/p1.csv')
-parser.add_argument('--data_root_dir_pre', type=str, default='data/florence/florence_test/pre')
-parser.add_argument('--data_root_dir_post', type=str, default='data/florence/florence_test/post')
-parser.add_argument('--data_root_dir_gt', type=str, default='data/florence/florence_test/gt')
-# parser.add_argument('--csv_test', type=str, default='/home/ai4sg/jamp/bitemporalUNet/data/harvey/harvey_test/v14.csv')
-# parser.add_argument('--data_root_dir_pre', type=str, default='/home/ai4sg/jamp/harvey_test/pre')
-# parser.add_argument('--data_root_dir_post', type=str, default='/home/ai4sg/jamp/harvey_test/post')
-# parser.add_argument('--data_root_dir_gt', type=str, default='/home/ai4sg/jamp/harvey_test/label')
-parser.add_argument('--weight_non_flood', type=float, default=0.097)
-parser.add_argument('--weight_flood', type=float, default=0.903)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
+
+def create_args(version, csv_test, data_root_dir_pre, data_root_dir_post, data_root_dir_gt):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--version', type=str, default=version)
+    parser.add_argument('-t', '--test_batch_size', type=int, default=4)
+    parser.add_argument('--csv_test', type=str, default=csv_test)
+    parser.add_argument('--data_root_dir_pre', type=str, default=data_root_dir_pre)
+    parser.add_argument('--data_root_dir_post', type=str, default=data_root_dir_post)
+    parser.add_argument('--data_root_dir_gt', type=str, default=data_root_dir_gt)
+    
+    args = parser.parse_args([])
+    return args
 
 def test_net(dataloader, net, criterion, output_dir, device=device):
     net.eval()
@@ -67,16 +66,18 @@ def test_net(dataloader, net, criterion, output_dir, device=device):
             
     predict_array = np.array(predict_list).reshape(-1, 1)
     kmeans = KMeans(n_clusters=2, random_state=0).fit(predict_array)
-    predict_binarized = kmeans.labels_
-    # # if score is low, add "1 - " because could be evaluating the wrong class
-    # predict_binarized = 1 - kmeans.labels_ 
+
+    if kmeans.cluster_centers_[1] < kmeans.cluster_centers_[0]:
+        predict_binarized = 1 - kmeans.labels_
+    else:
+        predict_binarized = kmeans.labels_
 
     labels_binary = np.where(np.array(labels_list) > 0.5, 1, 0)
 
     auc = roc_auc_score(labels_binary, predict_binarized)
     fpr, tpr, thresholds = roc_curve(labels_binary, predict_binarized)
     
-    return epoch_loss.avg, auc, fpr, tpr   
+    return epoch_loss.avg, auc, fpr, tpr
             
             
             
@@ -107,23 +108,35 @@ def main(args):
     logging.info(
         'Test [Loss: {}]'.format(loss_test))
     print('AUC: ', auc)
+    
+    return fpr, tpr, auc
+
+
+if __name__ == '__main__':
+    start_time = time.time()
+
+    florence_f1_args = create_args('train_florence','/home/ai4sg/jamp/florence_test/p1.csv', '/home/ai4sg/jamp/florence_test/pre', '/home/ai4sg/jamp/florence_test/post', '/home/ai4sg/jamp/florence_test/gt')
+    florence_f2_args = create_args('train_florence','/home/ai4sg/jamp/florence_test/p2.csv', '/home/ai4sg/jamp/florence_test/pre', '/home/ai4sg/jamp/florence_test/post', '/home/ai4sg/jamp/florence_test/gt')
+    harvey_h1_args = create_args('train_harvey','/home/ai4sg/jamp/harvey_test/v4.csv', '/home/ai4sg/jamp/harvey_test/pre', '/home/ai4sg/jamp/harvey_test/post', '/home/ai4sg/jamp/harvey_test/label')
+    harvey_h2_args = create_args('train_harvey','/home/ai4sg/jamp/harvey_test/v14.csv', '/home/ai4sg/jamp/harvey_test/pre', '/home/ai4sg/jamp/harvey_test/post', '/home/ai4sg/jamp/harvey_test/label')
+
+    fpr1, tpr1, auc1 = main(florence_f1_args)
+    fpr2, tpr2, auc2 = main(florence_f2_args)
+    fpr3, tpr3, auc3 = main(harvey_h1_args)
+    fpr4, tpr4, auc4 = main(harvey_h2_args)
+
     plt.figure()
-    plt.plot(fpr, tpr, color='darkorange', label='ROC curve (area = %0.2f)' % auc)
+    plt.plot(fpr1, tpr1, color='darkorange', label='Florence F1 ROC curve (area = %0.2f)' % auc1)
+    plt.plot(fpr2, tpr2, color='blue', label='Florence F2 ROC curve (area = %0.2f)' % auc2)
+    plt.plot(fpr3, tpr3, color='green', label='Harvey H1 ROC curve (area = %0.2f)' % auc3)
+    plt.plot(fpr4, tpr4, color='red', label='Harvey H2 ROC curve (area = %0.2f)' % auc4)
     plt.plot([0, 1], [0, 1], color='navy', linestyle='--')
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title('Florence F1 ROC Curve')
+    plt.title('ROC Curves')
     plt.legend(loc="lower right")
-    plt.savefig('florence_f1_roc_curve.png')
+    plt.savefig('roc_curves.png')
 
     print('Processing time:', time.time() - start_time)
-
-
-if __name__ == '__main__':
-    start_time = time.time()
-    args = parser.parse_args()
-    main(args)
-    print('Processing time:', time.time() - start_time)
-

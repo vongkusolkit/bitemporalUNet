@@ -4,16 +4,16 @@ import os
 import time
 
 import torch
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 
-import dataproc as dp
-from dualbridgeunet_v2 import DualBridgeUNet
-from dicebceloss import DiceBCELoss
-from utils import AverageMeter, set_logger, save_checkpoint, iou_pytorch, metric_pytorch, weight_tensor
+import utils.dataproc as dp
+from model.dualbridgeunet_v2 import DualBridgeUNet
+from utils.dicebceloss import DiceBCELoss
+from utils.utils import AverageMeter, set_logger, save_checkpoint, iou_pytorch, metric_pytorch, weight_tensor
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--version', type=str, default='train_v4_knn2_wl_mean_std')
+parser.add_argument('--version', type=str, default='train_florence')
 parser.add_argument('-t', '--train_batch_size', type=int, default=12)
 parser.add_argument('-v', '--valid_batch_size', type=int, default=12)
 parser.add_argument('-e', '--n_epochs', type=int, default=150)
@@ -22,11 +22,16 @@ parser.add_argument('--wd', type=float, default=1e-4)  # weight decay
 parser.add_argument('--beta1', type=float, default=0.5)  # weight decay
 parser.add_argument('--betas', type=float, default=(0.9, 0.999)) # beta for Adam optimization
 parser.add_argument('--resume', action='store_true', default=False)
-parser.add_argument('--csv_train', type=str, default='./data/combined/florence_train.csv')
-parser.add_argument('--csv_valid', type=str, default='./data/combined/florence_valid.csv')
-parser.add_argument('--data_root_dir_pre', type=str, default='../florence_myunet/pre')
-parser.add_argument('--data_root_dir_post', type=str, default='../florence_myunet/post')
-parser.add_argument('--data_root_dir_gt', type=str, default='../florence_myunet/weakly_label_framework')
+# parser.add_argument('--csv_train', type=str, default='/home/ai4sg/jamp/harvey_eval_site_v2_floodmask/train/train.csv')
+# parser.add_argument('--csv_valid', type=str, default='/home/ai4sg/jamp/harvey_eval_site_v2_floodmask/train/valid.csv')
+# parser.add_argument('--data_root_dir_pre', type=str, default='/home/ai4sg/jamp/harvey_train/pre')
+# parser.add_argument('--data_root_dir_post', type=str, default='/home/ai4sg/jamp/harvey_train/post')
+# parser.add_argument('--data_root_dir_gt', type=str, default='/home/ai4sg/jamp/harvey_train/wl')
+parser.add_argument('--csv_train', type=str, default='/home/ai4sg/jamp/florence_myunet/training_set.csv')
+parser.add_argument('--csv_valid', type=str, default='/home/ai4sg/jamp/florence_myunet/validation_set.csv')
+parser.add_argument('--data_root_dir_pre', type=str, default='/home/ai4sg/jamp/florence_myunet/pre')
+parser.add_argument('--data_root_dir_post', type=str, default='/home/ai4sg/jamp/florence_myunet/post')
+parser.add_argument('--data_root_dir_gt', type=str, default='/home/ai4sg/jamp/florence_myunet/wl')
 
 # training data statistic
 mean_pre = [0.5163, 0.0163, 0.5142, 0.0163]
@@ -105,7 +110,7 @@ def valid_net(dataloader, ep, net, criterion, writer, device):
 
         writer.add_scalar('training/valid_loss', valid_loss.item(), ep * n_batches + batch_idx)
 
-        batch_predictions = (valid_predict >= 0.5).int() # binarize predicitons to 0/1
+        batch_predictions = (valid_predict >= 0.5).int() 
         batch_masks = label.int()
 
         batch_iou = iou_pytorch(batch_predictions, batch_masks)

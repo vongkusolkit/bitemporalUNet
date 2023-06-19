@@ -1,8 +1,8 @@
 import math
 import torch
 import torch.nn as nn
-from bridgeunet import BridgeUNet
-from unet_utils_v2 import up_conv
+from model.bridgeunet import BridgeUNet
+from utils.unet_utils_v2 import up_conv
 
 
 class DualBridgeUNet(nn.Module):

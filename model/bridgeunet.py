@@ -1,5 +1,5 @@
 import torch.nn as nn
-from unet_utils_v2 import double_conv
+from utils.unet_utils_v2 import double_conv
 
 
 class BridgeUNet(nn.Module):
